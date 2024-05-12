@@ -10,20 +10,21 @@ using System.Drawing.Drawing2D;
 using System.Text;
 using System.Globalization;
 using static 日曆.Form1;
+using System.Text.Json;
+using Newtonsoft.Json;
 
 namespace 日曆
 {
     public partial class diarycs : Form
     {
-
+        private static diarycs instance;
+        private DateTime selectedDate;
 
         public diarycs(Form1 mainForm, DateTime diaryDate)
         {
 
             InitializeComponent();
-
-
-
+            selectedDate = diaryDate;
 
             this.Controls.Add(pictureBox2);
             pictureBox2.Hide();
@@ -545,11 +546,57 @@ namespace 日曆
             }
         }
 
-        
+
         public void SetDateTimePickerValue(DateTime date)
         {
             dateTimePicker1.Value = date;
         }
+
+        private void savebutton_Click(object sender, EventArgs e)
+        {
+            // 创建日记条目对象
+            DiaryEntry entry = new DiaryEntry
+            {
+                Date = dateTimePicker1.Value,
+                Mood = moodcomboBox.SelectedItem?.ToString(),
+                Weather = weathercomboBox.SelectedItem?.ToString(),
+                Context = context.Text
+                // 还需要添加照片路径的逻辑，例如：entry.PhotoPaths = GetPhotoPaths();
+            };
+
+            // 调用 DairyManager 中的 SaveDiary 方法保存日记
+            DairyManager.SaveToFile(entry, selectedDate);
+            // 提示用户保存成功或其他操作
+            MessageBox.Show("日记保存成功！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        public static void OpenDiaryForm(DateTime selectedDate)
+        {
+            
+            // 生成文件名（可以使用日期作为文件名）
+            string fileName = selectedDate.ToString("yyyy-MM-dd") + ".json";
+
+            // 创建文件路径
+            string filePath = Path.Combine(DairyManager.DiariesFolder, fileName); // DiariesFolder 包含了 diaries 文件夹
+
+            try
+            {
+                // 读取 JSON 文件内容
+                string json = File.ReadAllText(filePath);
+
+                // 将 JSON 反序列化为 DiaryEntry 对象
+                DiaryEntry diaryEntry = JsonConvert.DeserializeObject<DiaryEntry>(json);
+
+                MessageBox.Show($"日期: {diaryEntry.Date}, 内容: {diaryEntry.Context}, 心情: {diaryEntry.Mood}, 天氣: {diaryEntry.Weather}");
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"打开 JSON 文件时出错: {ex.Message}");
+            }
+        }
+
+       
     }
 }
 
